@@ -5,7 +5,7 @@ class Bank(object):
 
     def __init__(self, transactions_file):
         self.transactions_file = transactions_file
-        self.data = self.import_data(transactions_file)
+        self.import_data(transactions_file)
 
     def import_data(self, transactions_file):
         pass
