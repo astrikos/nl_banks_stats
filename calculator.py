@@ -1,36 +1,35 @@
 #! /usr/bin/env python
 import sys
 from optparse import OptionParser, make_option
-import pandas as pd
-
-
-def aggregator(type, pattern):
-    xls = pd.ExcelFile('income_data.xls')
-    data = xls.parse('Sheet0', index_col=3, na_values=['NA'])
-    if type:
-        type_slice = data[[d > 0 for d in data['amount']]]
-    else:
-        type_slice = data[[d < 0 for d in data['amount']]]
-
-    final_slice = type_slice
-    if pattern:
-        final_slice = type_slice[
-            [pattern.lower() in d.lower() for d in type_slice['description']]
-        ]
-
-    amount_series = final_slice['amount']
-    if type:
-        word = 'income'
-    else:
-        word = 'expenses'
-    print 'Total amount of %s is: %dE' % (
-        word,
-        sum([d for d in amount_series])
-    )
+from bank import *
 
 
 def main():
+    def checkRequiredArguments(options, parser):
+        error_arguments = []
+        if options.type is None:
+            error_arguments.append('Type must be specified.')
+
+        if options.bank is None:
+            error_arguments.append('Bank name must be specified.')
+
+        if options.file is None:
+            error_arguments.append('File must be specified.')
+
+        if error_arguments:
+            parser.error(
+                'Missing REQUIRED parameters: ' + str(error_arguments)
+            )
+
     option_list = [
+        make_option(
+            "-f", "--file", type="string", dest="file",
+            help=("xls file with alla transactions from the bank")
+        ),
+        make_option(
+            "-b", "--bank", type="choice", dest="bank",
+            choices=['ABN', ], help=("Bank name to choose from")
+        ),
         make_option(
             "-t", "--type", type="choice", dest="type", default=1,
             choices=['0', '1'], help=(
@@ -44,15 +43,18 @@ def main():
         ),
     ]
 
-    parser = OptionParser("usage: %prog [options])", option_list=option_list)
+    parser = OptionParser(
+        "usage: %prog [options])",
+        option_list=option_list,
+        version="%prog 0.1"
+    )
 
     (options, args) = parser.parse_args()
 
-    if options.type is None:
-        parser.error("type must be specified")
-        return 1
+    checkRequiredArguments(options, parser)
 
-    aggregator(int(options.type), options.pattern)
+    bank = globals()[options.bank](options.file)
+    bank.get_amount(int(options.type), options.pattern)
 
 if __name__ == '__main__':
     sys.exit(main())
